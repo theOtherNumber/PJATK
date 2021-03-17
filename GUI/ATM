@@ -1,0 +1,256 @@
+import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+
+
+class PRO2
+{
+    public static void main (String[] args)
+    {
+        ATM atm = new ATM() //ATM
+                .add(Denoms.HUNDRED, 5)
+                .add(Denoms.FIFTY,   3)
+                .add(Denoms.TWENTY,  3)
+                .add(Denoms.TEN,     2)
+                .add(Denoms.FIVE,    1)
+                .add(Denoms.TWO,     2)
+                .add(Denoms.ONE,     2);
+
+        System.out.println("Initial state of ATM\n" + atm);
+
+        Confirmation cnf = atm.withdraw(666);
+        System.out.println(cnf);
+        System.out.println("We've got " +
+                cnf.getNumOfBills(Denoms.FIFTY) +
+                " $50 dollar bills\n");
+
+        cnf = atm.withdraw(500);
+        System.out.println(cnf);
+
+        cnf = atm.withdraw(-20);
+        System.out.println(cnf);
+
+        cnf = atm.withdraw(49);
+        System.out.println(cnf);
+
+        cnf = atm.withdraw(55);
+        System.out.println(cnf);
+
+        System.out.println("Final state of ATM\n" + atm);
+    }
+}
+class ATM {
+
+    private Map<Denoms, Integer> denomsAmount = new TreeMap<>();
+
+    //wpłacanie pieniędzy do ATM
+    public ATM add(Denoms denoms, int amount) {
+        //jeśli taki banknot się pojawił to dolicz do niego kolejne
+        if (denomsAmount.containsKey(denoms)) {
+            Integer prevAmount = denomsAmount.get(denoms);
+            denomsAmount.put(denoms, (prevAmount + amount));
+        } else {
+
+            //jeśli się nie pojawił dodaj
+            denomsAmount.put(denoms, amount);
+        }
+
+        return this;
+    }
+
+    public Integer countMoney(Denoms denoms) {
+        Integer totalMoney;
+        totalMoney = denoms.value * denomsAmount.get(denoms);
+
+        return totalMoney;
+    }
+
+    public int totalMoneyInATM() {
+        int totalATMMoney = 0;
+        for (Map.Entry<Denoms, Integer> entry : denomsAmount.entrySet()) {
+
+            totalATMMoney += entry.getKey().value * entry.getValue();
+        }
+
+        return totalATMMoney;
+    }
+
+    public Confirmation withdraw(int amount) {
+
+        Confirmation confirmation;
+        int requestedAmount = amount;
+
+        // 1. nie ma wystarczająco pieniędzy w ATM
+
+        if (amount > totalMoneyInATM()) {
+            return new Confirmation(requestedAmount, WithdrawResult.NO_MONEY_IN_ATM);
+        }
+
+        //2. żądana kwota jest mniejsza równa gotówki w bankomacie
+        else if (amount <= totalMoneyInATM() && amount > 0) {
+
+            List<Denoms> wyplacone = new ArrayList<>();
+
+            for (Map.Entry<Denoms, Integer> entry : denomsAmount.entrySet()) {
+                while (amount >= entry.getKey().value && entry.getValue() > 0) {
+                    amount -= entry.getKey().value;
+                    wyplacone.add(entry.getKey());
+
+                    int iloscBanknotow = entry.getValue();
+                    denomsAmount.put(entry.getKey(), (iloscBanknotow - 1));
+                }
+            }
+
+            if (amount == 0) {
+                return new Confirmation(requestedAmount, WithdrawResult.SUCCESS, wyplacone);
+            } else {
+                // anulowanie transakcji
+                for (Denoms denom : wyplacone) {
+                    add(denom, 1);
+                }
+
+                return new Confirmation(requestedAmount, WithdrawResult.CANNOT_WITHDRAW);
+            }
+
+        }
+
+        //3. klient zażądał ujemnej lub zerowej sumy
+
+        else if (amount <= 0) {
+            return new Confirmation(requestedAmount, WithdrawResult.INVALID_AMOUNT);
+        }
+
+        return null;
+    }
+
+    @Override
+
+    public String toString() {
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("***** Current state of this ATM \n");
+        String addTab = "";
+
+        for (Map.Entry<Denoms, Integer> entry : denomsAmount.entrySet()) {
+            sb.append(entry.getKey()).append(":\t")
+                    .append(addTab)
+                    .append(denomsAmount.get(entry.getKey()))
+                    .append(" x $")
+                    .append(" x $")
+                    .append(entry.getKey().value)
+                    .append(addTab)
+                    .append("\t= $")
+                    .append(countMoney(entry.getKey()))
+                    .append("\n");
+
+            addTab = "\t";
+        }
+        sb.append("***** TOTAL: ********** $").append(totalMoneyInATM()).append("\n");
+
+        return sb.toString();
+    }
+}
+
+class Confirmation {
+
+    int amount;
+    WithdrawResult result;
+    List<Denoms> denomsList = new ArrayList<>();
+
+
+    public Confirmation(int amount, WithdrawResult result) {
+        this.result = result;
+        this.amount = amount;
+    }
+
+
+    public Confirmation(int amount, WithdrawResult result, List<Denoms> denomsList) {
+        this.result = result;
+        this.denomsList = denomsList;
+        this.amount = amount;
+    }
+
+    public int getNumOfBills(Denoms denom) // powiedz mi ile bankomat wyplacil 50'tek
+    {
+        return (int) denomsList.stream()
+                .filter(e -> e.equals(denom))
+                .count();
+    }
+
+    @Override
+    public String toString() {
+        String out = "WITHDRAWING $" + amount;
+
+        switch (result) {
+            case SUCCESS:
+                out += " OK\n";
+                break;
+            case CANNOT_WITHDRAW:
+                out+=": Lacking some needed bills; cancelled \n";
+                break;
+            case NO_MONEY_IN_ATM:
+                out+=": Non sufficient funds; cancelled \n";
+                break;
+            case INVALID_AMOUNT:
+                out += ": Negative amount requested; cancelled \n";
+                break;
+
+        }
+
+        if (result == WithdrawResult.SUCCESS) {
+            Map<Denoms, Integer> spis = new TreeMap<>();
+
+            for (Denoms denom : denomsList) {
+                if (spis.containsKey(denom)) {
+                    Integer prevAmount = spis.get(denom);
+                    spis.put(denom, (prevAmount + 1));
+                } else {
+                    //jeśli się nie pojawił dodaj
+                    spis.put(denom, 1);
+                }
+            }
+
+            StringBuilder sy = new StringBuilder();
+            sy.append("WITHDRAWING $" + amount + ": OK\n");
+            String addTab = "";
+
+            for (Map.Entry<Denoms, Integer> entry : spis.entrySet()) {
+                sy.append(entry.getKey()).append(":\t")
+                        .append(addTab)
+                        .append(spis.get(entry.getKey()))
+                        .append(" x $")
+                        .append(entry.getKey().value)
+                        .append(addTab)
+                        .append("\t= $")
+                        .append(entry.getKey().value*entry.getValue())
+                        .append("\n");
+
+                addTab = "\t";
+            }
+
+            sy.append("$"+ amount +" withdrawn ---------------").append("\n");
+            return sy.toString();
+        }
+
+        return out;
+    }
+}
+
+enum Denoms {
+    HUNDRED(100), FIFTY(50), TWENTY(20),
+    TEN(10), FIVE(5), TWO(2), ONE(1);
+
+    int value;
+
+    Denoms (int value) {
+        this.value = value;
+    }
+
+    public int getValue() {
+        return value;
+    }
+}
+enum WithdrawResult {
+    NO_MONEY_IN_ATM, CANNOT_WITHDRAW, INVALID_AMOUNT, SUCCESS;
+
+}
