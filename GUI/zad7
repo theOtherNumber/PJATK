@@ -1,0 +1,111 @@
+package com.company;
+
+import java.io.*;
+import java.util.*;
+
+class Main {
+    public static void main(String[] args) {
+        Map<String, List<Purchase>> shoppingList = new HashMap<>();
+
+        try {
+            String source = "src/com/company/wejscie";
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(source)));
+            String line = bufferedReader.readLine();
+
+            while(line != null) {
+                String[] divided = line.split(" ");
+
+                String name = divided[0];
+                String item = divided[1];
+                int price = Integer.parseInt(divided[2]);
+
+                Purchase purchase = new Purchase(item, price);
+
+                if(!shoppingList.containsKey(name)) {
+                    List<Purchase> basket = new ArrayList<>();
+                    basket.add(purchase);
+
+                    shoppingList.put(name, basket);
+                }
+
+                else {
+                    List<Purchase> basket = shoppingList.get(name);
+                    basket.add(purchase);
+                }
+
+                line = bufferedReader.readLine();
+            }
+
+            String recordPath = "src/wyjscie";
+            BufferedWriter bufferedWriter = new BufferedWriter(new PrintWriter(new File(recordPath)));
+
+            for (Map.Entry<String, List<Purchase>> entry : shoppingList.entrySet()) {
+                String lines = "";
+                int bill = 0;
+
+                String name = entry.getKey();
+                List<Purchase> items = entry.getValue();
+
+                for (Purchase item : items) {
+                    bill += item.getPrice();
+                }
+
+                List<Purchase> uniqueItems = new ArrayList<>();
+
+                for (Purchase item : items) {
+                    if (!uniqueItems.contains(item)) {
+                        uniqueItems.add(item);
+                    }
+                }
+
+                lines += name+" " + items.size() + " " + uniqueItems.size() + " " + bill;
+
+                bufferedWriter.write(lines);
+                bufferedWriter.newLine();
+                bufferedWriter.flush();
+
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+
+        }
+
+    }
+}
+
+class Purchase {
+    private String name;
+    private int price;
+
+    public Purchase(String name, int price) {
+        this.name = name;
+        this.price = price;
+    }
+
+    public String getName() {
+
+        return name;
+    }
+
+    public int getPrice() {
+        return price;
+    }
+
+    @Override
+    public String toString(){
+        return name;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Purchase) {
+            Purchase objectBeingCompared = (Purchase)obj;
+
+            if (objectBeingCompared.getName().equals(this.getName()))
+                return true;
+        }
+
+        return false;
+    }
+}
