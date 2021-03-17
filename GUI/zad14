@@ -1,0 +1,164 @@
+package com.company;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Main {
+
+    static List<Person> people = new ArrayList<>();
+
+    public static void main(String[] args) {
+        JFrame frame = new JFrame();
+        frame.setTitle("Wprowadź dane");
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        //osoby
+        JPanel persons = new JPanel();
+        persons.setLayout(new GridLayout(1, 1));
+
+        JList<Person> personJList = new JList<>();
+        personJList.setCellRenderer(new Renderer());
+        persons.add(personJList);
+
+        //scroll
+        JScrollPane personsScrollPane = new JScrollPane(personJList);
+
+        //wzrost
+        JSlider height = new JSlider(JSlider.HORIZONTAL);
+        height.setBorder(BorderFactory.createTitledBorder("Height [cm]"));
+        height.setMinimum(100);
+        height.setMaximum(200);
+        height.setMajorTickSpacing(10);
+        height.setMinorTickSpacing(1);
+        height.setPaintLabels(true);
+        height.setPaintTicks(true);
+        height.setPaintTrack(true);
+
+        //waga
+        JSlider weight = new JSlider(JSlider.HORIZONTAL);
+        weight.setMinimum(40);
+        weight.setMaximum(120);
+        weight.setBorder(BorderFactory.createTitledBorder("Weight [kg]"));
+        weight.setMajorTickSpacing(10);
+        weight.setMinorTickSpacing(2);
+        weight.setPaintLabels(true);
+        weight.setPaintTicks(true);
+        weight.setPaintTrack(true);
+
+        //wprowadź imię
+        JTextField name = new JTextField();
+        name.setPreferredSize(new Dimension(300, 30));
+        name.setMinimumSize(new Dimension(100, 10));
+
+        //rozwijana lista rozmiarów
+        JComboBox<Size> sizes = new JComboBox<>(Size.values());
+
+        //przycisk dodaj osobe
+        JButton button = new JButton("Add person");
+        button.setMinimumSize(new Dimension(40, 20));
+        button.addActionListener((e) -> addPerson(personJList, name.getText(), height.getValue(), weight.getValue(), (Size)sizes.getSelectedItem()));
+
+        //usadowienie paneli
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BorderLayout());
+
+        JPanel panelLeft = new JPanel();
+        JPanel panelRight = new JPanel();
+
+        panelLeft.add(new JLabel("name:"));
+        panelLeft.add(name);
+        panelLeft.add(sizes);
+        panelLeft.add(button);
+
+        JButton exit = new JButton("exit");
+        panelRight.add(exit);
+        exit.addActionListener((e) -> frame.dispose());
+
+        bottomPanel.add(panelLeft, BorderLayout.LINE_START);
+        bottomPanel.add(panelRight, BorderLayout.LINE_END);
+
+        panel.add(personsScrollPane);
+
+        panel.add(height);
+        panel.add(weight);
+        panel.add(bottomPanel);
+
+        frame.add(panel);
+        frame.setPreferredSize(new Dimension(670, 370));
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    public static void addPerson(JList<Person> list, String name, int height, int weight, Size size) {
+
+        if(name.trim().length() == 0)
+        {
+            JOptionPane.showMessageDialog(null, "Name is empty", "ERROR", JOptionPane.ERROR_MESSAGE);
+        }
+        else {
+            people.add(new Person(name, height, weight, size));
+            Person[] peopleTab = new Person[people.size()];
+            people.toArray(peopleTab);
+            list.setListData(peopleTab);
+        }
+    }
+}
+
+
+class Renderer implements ListCellRenderer<Person> {
+
+    @Override
+    public Component getListCellRendererComponent(JList<? extends Person> list, Person person, int index, boolean isSelected, boolean cellHasFocus) {
+
+        JLabel label = new JLabel(person.toString());
+        label.setOpaque(true);
+
+        if(person.size == Size.XL)
+        {
+            label.setBackground(Color.RED);
+        }
+        else if(person.size == Size.XS)
+        {
+            label.setBackground(Color.GREEN);
+        }
+        else
+        {
+            label.setBackground(Color.white);
+        }
+
+        return label;
+    }
+}
+
+enum Size {
+    XS, S, M, L, XL;
+
+}
+
+class Person {
+    String name;
+    double height;
+    double weight;
+    Size size;
+
+    public Person(String name, double height, double weight, Size size) {
+        this.name = name;
+        this.height=height;
+        this.weight=weight;
+        this.size=size;
+
+    }
+
+    @Override
+    public String toString() {
+        return name + " (" +
+                "h="+height+
+                ", w="+weight+
+                ", size=" +size
+                + ")";
+    }
+}
