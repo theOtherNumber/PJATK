@@ -1,0 +1,354 @@
+package com.company;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+class Main {
+
+    public static void main(String[] args) {
+
+        //produkty
+        Purchase carrot = new Purchase("marchewka", 2.0, 1);
+        Purchase milk = new Purchase("mleko", 2.90, 1);
+        Purchase bike = new Purchase("rower", 2000.90, 1);
+        Purchase honey = new Purchase("miód", 5.40,3);
+
+        //klient
+        Customer ania = new Customer("Ania");
+        Customer tomek = new Customer("Tomek");
+        Customer zbyszek = new Customer("Zbyszek");
+        Customer krystyna = new Customer("Krysia");
+        Customer adam = new Customer("Adam");
+
+        //klient bierze wozek
+        ania.takeCart(new Cart(ania));
+        tomek.takeCart(new Cart(tomek));
+        krystyna.takeCart(new Cart(krystyna));
+        adam.takeCart(new Cart(adam));
+
+        //klient robi zakupy
+        ania.buys(carrot);
+        ania.buys(carrot);
+        ania.buys(honey);
+        ania.buys(milk);
+        tomek.buys(bike);
+        adam.buys(milk);
+
+        //klient próbujący kupic produkt bez wózka
+        zbyszek.buys(milk);
+
+        //idzie do kasy
+        Checkout kasa = new Checkout();
+
+        //płaci
+        ania.pays(kasa);
+
+        //klient płacący za produkt bez wózka
+        zbyszek.pays(kasa);
+
+        //klient płacący bez żadnych produktów, ale z wózkiem
+        krystyna.pays(kasa);
+
+        //rozliczenie przez checkout
+        kasa.checkOut(tomek);
+
+        //raport z kasy z różnymi komparatorami
+        kasa.generateReport(Bill.getPriceComparator());
+        kasa.generateReport();
+        kasa.generateReport(Bill.getNumberOfProducts());
+
+        //ania wraca do sklepu i dokupuje rower
+        ania.takeCart(new Cart(ania));
+        ania.buys(bike);
+        ania.pays(kasa);
+    }
+
+}
+
+//klasa Purchase
+class Purchase {
+
+    //pola klasy
+    private String item;
+    private double price;
+    private int counts;
+
+    //konstruktor
+    public Purchase(String item, double price, int counts) {
+        this.item = item;
+        this.price = price;
+        this.counts = counts;
+    }
+
+    //gettery
+    public String getItem() {
+
+        return item;
+    }
+
+    public int getCounts() {
+
+        return counts;
+    }
+
+    public double getPrice() {
+
+        return price;
+    }
+
+    @Override
+    public String toString() {
+
+        return item + " - " + price + " PLN";
+    }
+}
+
+//klasa Cart
+
+class Cart {
+
+    //pola
+    Customer customer;
+    List<Purchase> purchaseList = new ArrayList<>();
+
+    //konstruktory
+    public Cart(Customer customer) {
+
+        this.customer = customer;
+    }
+
+    public void setCustomer(Customer customer) {
+
+        this.customer = customer;
+    }
+
+    //gettery
+    public Customer getCustomer() {
+
+        return customer;
+    }
+
+    public List<Purchase> getPurchaseList() {
+
+        return purchaseList;
+    }
+
+    //dodaj produkty do wózka
+    public void getToCart(Purchase a) {
+
+        purchaseList.add(a);
+    }
+
+}
+
+//klasa Customer
+
+class Customer {
+
+    //pola
+    private String surname;
+    private Cart cart;
+    private List<Bill> bills = new ArrayList<>();
+
+    //konstruktory
+    public Customer(String surname) {
+
+        this.surname = surname;
+    }
+
+    //gettery
+    public String getSurname() {
+        return surname;
+    }
+
+    public Cart getCart() {
+        return cart;
+    }
+
+    public void putCatBack(){
+        this.cart = null;
+    }
+
+    //weź wózek
+    public void takeCart(Cart cart) {
+        this.cart = cart;
+    }
+
+    //kup produkt
+    public void buys(Purchase purchases) {
+        if (cart != null) {
+            cart.getToCart(purchases);
+
+        } else {
+            System.out.println( getSurname() +  "-- This customer cannot buy anything because has no cart --\n");
+        }
+    }
+
+    //zapłać
+    public void pays(Checkout checkout) {
+        System.out.println("-- "+ getSurname() + " pays for purchased items --");
+        checkout.checkOut(this);
+    }
+
+    //dodaj rachunek do listy rachunków klienta
+    public void addBill(Bill bill) {
+        bills.add(bill);
+    }
+
+}
+
+//klasa CheckOut
+
+class Checkout {
+
+    //lista rachunkow kasy
+    List<Bill> allBills = new ArrayList<>();
+
+    //rozlicz po wózku
+    public void checkOut(Cart cart) {
+
+        if (cart != null && cart.getPurchaseList().size()>0) {
+            //rachunek dla klienta i sklepu
+            Bill customerBill = new Bill(cart);
+            Bill shopsBill = new Bill(cart);
+
+            cart.getCustomer().addBill(customerBill);
+            System.out.println(customerBill);
+
+            //dodaj do listy wszystkich rachunkow
+            allBills.add(shopsBill);
+
+            //odlóz wózek
+            cart.getCustomer().putCatBack();
+
+        } else {
+            System.out.print( "-- ERROR: The customer tried to pay without any products in the cart -- \n");
+        }
+    }
+
+    //rozlicz po kliencie
+    public void checkOut(Customer customer) {
+        checkOut(customer.getCart());
+
+    }
+
+    //wygeneruj raport z kasy
+    public Report generateReport(Comparator<Bill> comparator) {
+        return new Report(allBills, comparator);
+    }
+
+    public Report generateReport() {
+        return new Report(allBills);
+    }
+
+}
+
+//klasa Bill
+
+class Bill implements Comparable<Bill> {
+
+    //pola + data
+    private List<Purchase> products = new ArrayList<>();
+    private Customer customer;
+    private LocalDate purchaseDate = LocalDate.now();
+    double totalPrice = 0;
+    int numberOfProducts = 0;
+
+    //gettery
+    public LocalDate getPurchaseDate() {
+        return purchaseDate;
+    }
+
+    public List<Purchase> getProducts() {
+        return products;
+    }
+
+    //rachunek z wózka
+    public Bill(Cart cart) {
+
+
+        for (Purchase purchase : cart.getPurchaseList()) {
+            products.add(new Purchase(purchase.getItem(), purchase.getPrice(), purchase.getCounts()));
+            totalPrice = totalPrice + purchase.getPrice();
+            numberOfProducts = numberOfProducts + purchase.getCounts();
+        }
+
+        //pobierz klienta
+        customer = cart.getCustomer();
+
+        //pobierz datę
+        purchaseDate = getPurchaseDate();
+
+    }
+
+    //nadpisanie stringa
+    @Override
+    public String toString() {
+
+        return "BILL: \n" +
+                "purchaseDate = " + purchaseDate + "\n" +
+                "customer = " + customer.getSurname() + "\n" +
+                "number of products purchased = " + numberOfProducts + " items" +"\n" +
+                "products = " + products + "\n" +
+                "total shopping price = " + totalPrice +" PLN" + "\n";
+
+    }
+
+    //porównanie z jakiej daty są zakupy
+    @Override
+    public int compareTo(Bill o) {
+
+        if (this.purchaseDate.isBefore(o.purchaseDate)) {
+            return 1;
+        } else if (this.purchaseDate.isAfter(o.purchaseDate)) {
+            return -1;
+        } else return 0;
+    }
+
+
+    public static Comparator<Bill> getPriceComparator() {
+        return (o1, o2) -> {
+            if (o1.totalPrice > o2.totalPrice) {
+                return -1;
+            } else if (o1.totalPrice < o2.totalPrice) {
+                return 1;
+            } else return 0;
+        };
+    }
+
+    public static Comparator<Bill> getNumberOfProducts() {
+        return (o1, o2) -> {
+            if (o1.numberOfProducts < o2.numberOfProducts) {
+                return -1;
+            } else if (o1.numberOfProducts > o2.numberOfProducts) {
+                return 1;
+            } else return 0;
+        };
+    }
+}
+
+
+// klasa Report
+class Report {
+
+    //pole listy rachunkow
+    List<Bill> bills = new ArrayList<>();
+
+    public Report(List<Bill> allBills)
+    {
+        this(allBills, Comparator.naturalOrder());
+
+    }
+
+    //generowanie raportu
+    public Report(List<Bill> allBills, Comparator<Bill> comparator) {
+        System.out.println("CASH REGISTER REPORT:");
+        bills.addAll(allBills);
+        Collections.sort(bills, comparator);
+        System.out.println(bills);
+    }
+}
+
