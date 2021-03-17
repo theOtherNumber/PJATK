@@ -1,0 +1,59 @@
+package com.company;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+
+class Main {
+
+    public static void main(String[] args) {
+
+        Letters letters = new Letters("ABCD");
+        for (Thread t : letters)
+            System.out.println(t.getName() + " starting");
+        letters.start();
+        try {
+            Thread.sleep(5000); }
+        catch(InterruptedException ignore) {
+        }
+        letters.stop();
+        System.out.println("\nProgram completed.");
+    }
+}
+
+class Letters implements Iterable<Thread> {
+
+    private List<Thread> threads = new ArrayList<>();
+    private boolean threadsRunning = true;
+
+    public Letters(String letters) {
+        for (int i = 0; i<letters.length(); i++) {
+            char letter = letters.charAt(i);
+            Thread thread = new Thread(() -> {
+                while(threadsRunning) {
+                    System.out.print(letter);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            thread.setName("Thread " + letter);
+            threads.add(thread);
+        }
+    }
+    public void start() {
+        threads.forEach(t-> t.start());
+    }
+
+    public void stop() {
+        threadsRunning = false;
+    }
+
+    @Override
+    public Iterator<Thread> iterator() {
+        return threads.iterator();
+    }
+}
